@@ -42,7 +42,7 @@ let employees = [
 ];
 
 app.get("/", (req, res) => {
-  res.send("Google Employee Service!");
+  res.status(200).send("Google Employee Service!");
 });
 
 app.get("/employees/:id", (req, res) => {
@@ -51,20 +51,18 @@ app.get("/employees/:id", (req, res) => {
 
   for (let i = 0; i < employees.length; i++) {
     if (employees[i].id == id) {
-      res.send(employees[i]);
+      res.status(200).send(employees[i]);
     }
   }
-  res.send("NOT FOUND");
-});
-
-app.get("/employees", (req, res) => {
-  res.send(employees);
+  res
+    .status("404")
+    .send("Employee Id is not found, Kindly check your Employee Id");
 });
 
 app.post("/employees", (req, res) => {
   const employee = req.body;
   employees.push(employee);
-  res.send(employees);
+  res.status(201).send(employees);
 });
 
 app.put("/employees", (req, res) => {
@@ -77,10 +75,10 @@ app.put("/employees", (req, res) => {
   for (let i = 0; i < employees.length; i++) {
     if (employees[i].id === id) {
       employees.push(employee);
-      res.send(employees);
+      res.status(200).send(employees);
     }
   }
-  res.send("NOT FOUND");
+  res.status(404).send("NOT FOUND");
 });
 
 app.delete("/employees/:id", (req, res) => {
@@ -91,11 +89,41 @@ app.delete("/employees/:id", (req, res) => {
   for (let i = 0; i < employees.length; i++) {
     if (employees[i].id == id) {
       employees.splice(empIndex, 1);
-      res.send("Deleted successfully");
+      res.status(200).send("Deleted successfully");
     }
   }
 
-  res.send("NOT FOUND");
+  res.status(404).send("NOT FOUND");
+});
+
+app.get("/find/employees/:mobile", (req, res) => {
+  let mobile = req.params.mobile;
+  console.log(mobile);
+
+  for (let i = 0; i < employees.length; i++) {
+    if (employees[i].mobile == mobile) {
+      res.status(200).send(employees[i]);
+    }
+  }
+  res.status(404).send("NOT FOUND");
+});
+
+app.get("/find/employees", (req, res) => {
+  let designation = req.query.designation;
+  console.log(designation);
+
+  let filteredDesignation = [];
+
+  for (let i = 0; i < employees.length; i++) {
+    if (employees[i].designation == designation) {
+      filteredDesignation.push(employees[i]);
+    }
+  }
+  res.status(200).send(filteredDesignation);
+});
+
+app.get("/employees", (req, res) => {
+  res.status(200).send(employees);
 });
 
 // Start the server
