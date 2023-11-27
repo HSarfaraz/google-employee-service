@@ -1,0 +1,14 @@
+{
+  "name": "google-employee-service",
+  "version": "1.0.0",
+  "description": "Google employee microservice",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "sarfaraz hussain",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
