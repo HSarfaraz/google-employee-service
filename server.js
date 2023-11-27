@@ -45,6 +45,18 @@ app.get("/", (req, res) => {
   res.send("Google Employee Service!");
 });
 
+app.get("/employees/:id", (req, res) => {
+  let id = req.params.id;
+  console.log(id);
+
+  for (let i = 0; i < employees.length; i++) {
+    if (employees[i].id == id) {
+      res.send(employees[i]);
+    }
+  }
+  res.send("NOT FOUND");
+});
+
 app.get("/employees", (req, res) => {
   res.send(employees);
 });
