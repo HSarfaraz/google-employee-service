@@ -1,132 +1,126 @@
 const express = require("express");
+const mysql = require("mysql");
+const { verifyAPIKey } = require("./middleware");
+const https = require("https");
+const fs = require("fs");
+
 const app = express();
 const port = 3000;
 
+var databaseOptions = require("dotenv").config();
+var db = mysql.createConnection(databaseOptions);
+
 app.use(express.json());
-
-/*
-app.get()
-app.post()
-app.update()
-app.delete()
-*/
-
-let employees = [
-  {
-    id: 1,
-    firstname: "Sarfaraz",
-    lastname: "Chaudhary",
-    designation: "Sr.Software Engineer",
-    mobile: "1234567890",
-    email: "s@y.com",
-    address: "Hyderabad",
-  },
-  {
-    id: 2,
-    firstname: "Sohail",
-    lastname: "Chaudhary",
-    designation: "Software Engineer",
-    mobile: "1234567891",
-    email: "a@y.com",
-    address: "Sydney",
-  },
-  {
-    id: 3,
-    firstname: "Siraj",
-    lastname: "Chaudhary",
-    designation: "Tech Lead",
-    mobile: "1234567892",
-    email: "si@y.com",
-    address: "Hyderabad",
-  },
-];
 
 app.get("/", (req, res) => {
   res.status(200).send("Google Employee Service!");
 });
 
-app.get("/employees/:id", (req, res) => {
+app.get("/employees/:id", verifyAPIKey, (req, res) => {
   let id = req.params.id;
   console.log(id);
 
-  for (let i = 0; i < employees.length; i++) {
-    if (employees[i].id == id) {
-      res.status(200).send(employees[i]);
+  let sql = "SELECT * FROM googledb.employee WHERE id = ?";
+  db.query(sql, id, (error, data) => {
+    if (error) {
+      return res.send(error);
     }
-  }
-  res
-    .status("404")
-    .send("Employee Id is not found, Kindly check your Employee Id");
+    // return res.status(200).send(data);
+    //custom response with status code and status message
+    res.statusMessage = "Got the record in DB";
+    res.status(600);
+    return res.send(data);
+  });
 });
 
-app.post("/employees", (req, res) => {
+app.post("/employees", verifyAPIKey, (req, res) => {
   const employee = req.body;
-  employees.push(employee);
-  res.status(201).send(employees);
+
+  let sql = "INSERT INTO googledb.employee SET ?";
+  db.query(sql, employee, (error, data) => {
+    if (error) return res.status(500).send(error);
+    res.status(201).send(employee);
+  });
 });
 
-app.put("/employees", (req, res) => {
+app.put("/employees", verifyAPIKey, (req, res) => {
   const id = req.body.id;
   const employee = req.body;
 
   console.log(id);
   console.log(employee);
 
-  for (let i = 0; i < employees.length; i++) {
-    if (employees[i].id === id) {
-      employees.push(employee);
-      res.status(200).send(employees);
-    }
-  }
-  res.status(404).send("NOT FOUND");
+  var sql = "UPDATE googledb.employee SET ? WHERE id =?";
+
+  db.query(sql, [employee, id], (error, data) => {
+    if (error) return res.status(500).send(error);
+    res.status(201).send(employee);
+  });
 });
 
-app.delete("/employees/:id", (req, res) => {
+app.delete("/employees/:id", verifyAPIKey, (req, res) => {
   let id = req.params.id;
   console.log(id);
 
-  const empIndex = employees.findIndex((emp) => emp.id == id);
-  for (let i = 0; i < employees.length; i++) {
-    if (employees[i].id == id) {
-      employees.splice(empIndex, 1);
-      res.status(200).send("Deleted successfully");
+  let sql = "DELETE FROM googledb.employee WHERE id = ?";
+  db.query(sql, id, (error, data) => {
+    if (error) {
+      return res.status(500).send(error);
     }
-  }
-
-  res.status(404).send("NOT FOUND");
+    return res.status(200).send(`Employee of ${id} is deleted`);
+  });
 });
 
-app.get("/find/employees/:mobile", (req, res) => {
+app.get("/find/employees/by/mobile/:mobile", verifyAPIKey, (req, res) => {
   let mobile = req.params.mobile;
   console.log(mobile);
 
-  for (let i = 0; i < employees.length; i++) {
-    if (employees[i].mobile == mobile) {
-      res.status(200).send(employees[i]);
+  let sql = "SELECT * FROM googledb.employee WHERE mobile = ?";
+  db.query(sql, mobile, (error, data) => {
+    if (error) {
+      return res.send(error);
     }
-  }
-  res.status(404).send("NOT FOUND");
+    return res.status(200).send(data);
+  });
 });
 
-app.get("/find/employees", (req, res) => {
+app.get("/find/employees/by/designation", verifyAPIKey, (req, res) => {
   let designation = req.query.designation;
   console.log(designation);
 
-  let filteredDesignation = [];
-
-  for (let i = 0; i < employees.length; i++) {
-    if (employees[i].designation == designation) {
-      filteredDesignation.push(employees[i]);
+  let sql = "SELECT * FROM googledb.employee WHERE designation = ?";
+  db.query(sql, designation, (error, data) => {
+    if (error) {
+      return res.send(error);
     }
-  }
-  res.status(200).send(filteredDesignation);
+    return res.status(200).send(data);
+  });
 });
 
-app.get("/employees", (req, res) => {
-  res.status(200).send(employees);
+app.get("/employees", verifyAPIKey, (req, res) => {
+  let sql = "SELECT * FROM googledb.employee";
+  db.query(sql, (error, data) => {
+    if (error) {
+      return res.send(error);
+    }
+    return res.status(200).send(data);
+  });
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+// Specify the paths to your SSL certificates
+const privateKey = fs.readFileSync("ssl/private-key.pem", "utf8");
+const certificate = fs.readFileSync("ssl/certificate.pem", "utf8");
+const ca = fs.readFileSync("ssl/csr.pem", "utf8");
+
+const credentials = {
+  key: privateKey,
+  cert: certificate,
+  ca: ca,
+};
+
+// Create an HTTPS server
+const server = https.createServer(credentials, app);
+
+server.listen(port, () => {
+  console.log(`Server running on https://localhost:${port}`);
 });
